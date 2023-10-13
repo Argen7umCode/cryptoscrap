@@ -4,11 +4,13 @@ from extracters import WaletBalanseExtracter, WaletTransactionExtracter
 from db.processers import BalanceDBProcesser, TransactionsDBProcesser, Session
 from app import App, BalansePipepline, TransactionsPipepline
 import asyncio
-from decouple import Config
 
-config = Config()
+import os
+from dotenv import load_dotenv
 
-api_key = config.get('API_KEY')
+load_dotenv()
+
+API_KEY = os.getenv('API_KEY')
 address = '0x295e26495CEF6F69dFA69911d9D8e4F3bBadB89B'
 
 pipelines = [
