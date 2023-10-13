@@ -23,8 +23,7 @@ class TransactionsPipepline(ParserPipeline):
 
     async def run(self):
         while True:
-            print(type(self.parser.address))
-            block = await self.db_processer.get_last_block()
+            block = await self.db_processer.get_last_block(self.parser.address)
             print(block)
             data = await self.parser.parse(block)
             await self.db_processer(data)

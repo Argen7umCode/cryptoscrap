@@ -1,7 +1,7 @@
 from parsers import WaletBalanceParser, WaletTransactionsParser
 from requesters import AsyncGetRequester
 from extracters import WaletBalanseExtracter, WaletTransactionExtracter
-from db.processers import BalanceDBProcesser, TransactionsDBProcesser, Session
+from db.processers import BalanceDBProcesser, TransactionsDBProcesser, async_session
 from app import App, BalansePipepline, TransactionsPipepline
 import asyncio
 
@@ -18,13 +18,13 @@ pipelines = [
                                                AsyncGetRequester(), 
                                                WaletBalanseExtracter()), 
                      time_to_sleep=5, 
-                     db_processer=BalanceDBProcesser(Session)),
+                     db_processer=BalanceDBProcesser(async_session)),
 
     TransactionsPipepline(parser=WaletTransactionsParser(address, API_KEY, 
                                                          AsyncGetRequester(), 
                                                          WaletTransactionExtracter()),
                      time_to_sleep=1, 
-                     db_processer=TransactionsDBProcesser(Session)),
+                     db_processer=TransactionsDBProcesser(async_session)),
 ]
 
 

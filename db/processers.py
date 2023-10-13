@@ -1,18 +1,10 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import select, or_
 from db.models import Wallet, Balance, Transaction, Base
-
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
-
-
-engine = create_async_engine('sqlite+aiosqlite:///wallets.db', echo=True)
-Session = sessionmaker(bind=engine)
-
+from db import AsyncSession, async_session
 
 class DBProcesser:
-    def __init__(self, Session) -> None:
-        self.session_engine = Session
+    def __init__(self, async_session) -> None:
+        self.session_engine = async_session
 
     async def create_wallet(self, wallet_address, session: AsyncSession):
         new_wallet = Wallet(address=wallet_address)
@@ -21,17 +13,19 @@ class DBProcesser:
         return new_wallet
 
     async def get_wallet_by_name(self, wallet_address, session: AsyncSession):
-        wallet = await session.query(Wallet)\
-                                .filter_by(address=wallet_address).first()
-        return wallet
+        wallet = await session.execute(select(Wallet)\
+                                       .filter_by(address=wallet_address))
+        return wallet.first()
         
     async def get_wallet_by_id(self, wallet_id, session: AsyncSession):
-        return await session.query(Wallet).get(wallet_id)
+        wallet = await session.execute(select(Wallet).get(wallet_id))
+        return wallet.first()
 
-    async def get_create_wallet_or_create(self, wallet_address, session: AsyncSession):
-        wallet = await self.get_wallet_by_name(wallet_address)
+    
+    async def get_or_create_wallet(self, wallet_address, session: AsyncSession):
+        wallet = await self.get_wallet_by_name(wallet_address, session)
         if not wallet:
-            wallet = await self.create_wallet(session)
+            wallet = await self.create_wallet(wallet_address, session)
         return wallet
 
     async def add_wallets(self, wallet_addresses, session: AsyncSession):
@@ -41,15 +35,15 @@ class DBProcesser:
         await session.commit()
 
     async def add_balance(self, wallet_address, amount, session: AsyncSession):
-        wallet = await self.get_create_wallet_or_create(wallet_address)
+        wallet = await self.get_or_create_wallet(wallet_address)
         new_balance = Balance(amount=amount, wallet=wallet)
         session.add(new_balance)
         await session.commit() 
     
     async def add_transaction(self, transaction_data: dict, session: AsyncSession):
         data = {
-            "sender_id" : await self.get_create_wallet_or_create(transaction_data.get('sender')).id,
-            "receiver_id" : await self.get_create_wallet_or_create(transaction_data.get('receiver')).id,
+            "sender_id" : await self.get_or_create_wallet(transaction_data.get('sender')).id,
+            "receiver_id" : await self.get_or_create_wallet(transaction_data.get('receiver')).id,
             "amount" : transaction_data.get('receiver'),
             "hash" : transaction_data.get('hash'),
             "transaction_time" : transaction_data.get('transaction_time'),
@@ -70,18 +64,20 @@ class DBProcesser:
 class BalanceDBProcesser(DBProcesser):
     __slots__ = ['add_balance']
     async def __call__(self, balanse_data):
-        async with AsyncSession(engine) as session:
+        async with async_session() as session:
             wallet_address, balanse = balanse_data.items()
             await self.add_balance(wallet_address=wallet_address, 
-                                amount=balanse)
+                                amount=balanse, session=session)
             
 class TransactionsDBProcesser(DBProcesser):
     __slots__ = ['add_transactions']
     async def __call__(self, transactions_data):
-        async with AsyncSession(engine) as session:
-            self.add_transactions(transactions_data)
+        async with async_session() as session:
+            self.add_transactions(transactions_data, session)
 
-    async def get_last_block(wallet_address):
-        async with AsyncSession(engine) as session:
-            return await session.query(Transaction).filter_by(address=wallet_address).order_by(Transaction.transaction_time.desc()).first().block
-
+    async def get_last_block(self, wallet_address):
+        async with async_session() as session:
+            wallet = await self.get_or_create_wallet(wallet_address, session)
+            transaction = await session.execute(select(Transaction).filter(or_(sender_id=wallet.id, receiver_id=wallet.id))\
+                                                            .order_by(Transaction.transaction_time.desc()))
+            return transaction.first().block

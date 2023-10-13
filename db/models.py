@@ -1,6 +1,9 @@
+import asyncio
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
+from db import engine
+
 
 Base = declarative_base()
 
@@ -39,3 +42,8 @@ class Transaction(Base):
     status = Column(String)
     block = Column(Integer)
 
+async def init():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+asyncio.run(init())
