@@ -11,7 +11,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 API_KEY = os.getenv('API_KEY')
-
 address = '0x295e26495CEF6F69dFA69911d9D8e4F3bBadB89B'.lower()
 
 pipelines = [
