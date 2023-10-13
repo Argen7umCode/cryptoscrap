@@ -36,7 +36,6 @@ class Transaction(Base):
     sender_id = Column(Integer, ForeignKey('wallets.id'))
     receiver_id = Column(Integer, ForeignKey('wallets.id'))
     amount = Column(Float)
-    token = Column(String)
     hash = Column(String)
     transaction_time = Column(DateTime)
     status = Column(String)

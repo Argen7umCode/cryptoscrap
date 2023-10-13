@@ -55,7 +55,7 @@ class WaletTransactionExtracter(Extracter):
         return self.get_field(data, 'to')
 
     def get_amount(self, data):
-        return int(self.get_field(data, 'value')) / 10**18
+        return int(self.get_field(data, 'value'), 10) / 10**18
     
     def get_hash(self, data):
         return self.get_field(data, 'hash')
