@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 import json
 
-
 class AsyncRequester(ABC):
     @staticmethod
     async def decode_responce(response):

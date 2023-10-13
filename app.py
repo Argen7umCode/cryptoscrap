@@ -25,7 +25,7 @@ class TransactionsPipepline(ParserPipeline):
         while True:
             block = await self.db_processer.get_last_block(self.parser.address)
             print(block)
-            data = await self.parser.parse(block)
+            data = await self.parser.parse(start_block=block)
             await self.db_processer(data)
             await asyncio.sleep(self.time_to_sleep)
 

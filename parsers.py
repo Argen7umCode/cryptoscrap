@@ -1,10 +1,7 @@
-from pprint import pprint
 import re
 from typing import Any
+from string import Template
 
-from requesters import AsyncGetRequester, AsyncPostRequester
-from extracters import WaletBalanseExtracter, WaletTransactionExtracter
-from bs4 import BeautifulSoup
 import time
 from random import randint
 
@@ -92,7 +89,7 @@ class AsyncParser:
 class WaletBalanceParser(AsyncParser):
     def __init__(self, wallet_address, api_key, requester, extracter, sleeper=None) -> None:
         super().__init__(requester, extracter, sleeper)
-        self.address = wallet_address
+        self.address = wallet_address.lower()
         self.api_key = api_key
         self.urls = [f'https://api.bscscan.com/api?module=account&action=balance&address={self.address}&apikey={self.api_key}']
         self.bodies = [{}]
@@ -100,22 +97,23 @@ class WaletBalanceParser(AsyncParser):
     async def parse(self):
         task = await self._get_many_page_tasks(self.urls, 
                                          self.bodies)
-        data = self.extracter.extract(task)
+        data = list(self.extracter.extract(task))
         return {
-            self.address : data
+            self.address : data[0]
         }
 
 
 class WaletTransactionsParser(AsyncParser):
     def __init__(self, wallet_address, api_key, requester, extracter, 
-                 sleeper=None, offset=100, start_block=None, end_block=None) -> None:
+                 sleeper=None, offset=10, start_block=None, end_block=None) -> None:
         super().__init__(requester, extracter, sleeper)
-        self.address = wallet_address
+        self.address = wallet_address.lower()
         self.api_key = api_key
         self.__start_block = start_block
         self.end_block = end_block
         self.offset = offset
-        self.urls = [f'https://api.bscscan.com/api?module=account&action=txlist&address={self.address}&startblock={self.start_block}&endblock={self.end_block}&page=1&offset={self.offset}&sort=desc&apikey={self.api_key}']
+        self.url_template = Template(f'https://api.bscscan.com/api?module=account&action=txlist&address={self.address}&startblock=$startblock&endblock={self.end_block}&page=1&offset={self.offset}&sort=desc&apikey={self.api_key}')
+        self.urls = [self.url_template.substitute(startblock=start_block)]
         self.bodies = [{}]
 
     @property
@@ -124,23 +122,16 @@ class WaletTransactionsParser(AsyncParser):
 
     @start_block.setter
     def start_block(self, start_block):
+        print(self.url_template.substitute(startblock=start_block))
+        self.urls[0] = self.url_template.substitute(startblock=start_block)
         self.__start_block = start_block
-        self.urls[0] = self.urls[0].replace(re.match('&startblock=(\d+)&', self.urls[0]).group(0), 
-                                            start_block)
+        
+
 
     async def parse(self, start_block):
         self.start_block = start_block
         task = await self._get_many_page_tasks(self.urls, 
                                          self.bodies)
-        data = self.extracter.extract(task)
-        return list(data)
+        data = list(self.extracter.extract(task))
+        return data
 
-# if __name__ == "__main__":
-#     address = '0x295e26495CEF6F69dFA69911d9D8e4F3bBadB89B'
-#     api_key = 'BWHU9UUTWCR7WTJC88UYGYDV7JHX2FTN9H'
-#     parser = WaletTransactionsParser(address, start_block='32563743', 
-#                                               end_block=32564115,
-#                                               api_key=api_key,
-#                                               requester=AsyncGetRequester(),
-#                                               extracter=WaletTransactionExtracter())
-#     pprint(asyncio.run(parser.parse()))
