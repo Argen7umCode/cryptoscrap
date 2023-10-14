@@ -7,6 +7,7 @@ class AsyncRequester(ABC):
         try:
             json_data = await response.json(content_type=None)
         except json.JSONDecodeError as e:
+            print(e)
             json_data = None
         html_data = await response.text() 
         status_code = response.status 

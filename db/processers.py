@@ -1,4 +1,3 @@
-from pprint import pprint
 from sqlalchemy import select, or_
 from db.models import Wallet, Balance, Transaction, Base
 from db import AsyncSession, async_session
@@ -10,7 +9,7 @@ class DBProcesser:
     def get_first(self, item):
         try:
             return list(item._mapping.values())[0]
-        except:
+        except Exception:
             return 
         
     async def create_wallet(self, wallet_address, session: AsyncSession):
@@ -86,7 +85,8 @@ class TransactionsDBProcesser(DBProcesser):
 
     async def get_last_block(self, wallet_address):
         async with async_session() as session:
-            wallet = await self.get_or_create_wallet(wallet_address, session)
+            wallet = await self.get_or_create_wallet(wallet_address, 
+                                                     session)
             id = wallet.id
             query = select(Transaction).filter(
                 or_(Transaction.sender_id == id, 

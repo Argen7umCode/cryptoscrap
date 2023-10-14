@@ -45,7 +45,7 @@ class WaletTransactionExtracter(Extracter):
     def get_field(self, data, field_name):
         try:
             return data.get(field_name)
-        except:
+        except Exception:
             return None
 
     def get_sender(self, data):
@@ -55,7 +55,7 @@ class WaletTransactionExtracter(Extracter):
         return self.get_field(data, 'to')
 
     def get_amount(self, data):
-        return int(self.get_field(data, 'value'), 10) / 10**18
+        return int(self.get_field(data, 'value')) / 10**18
     
     def get_hash(self, data):
         return self.get_field(data, 'hash')
@@ -69,11 +69,10 @@ class WaletTransactionExtracter(Extracter):
     def get_block(self, data):
         return self.get_field(data, 'blockNumber')
 
-    def extract_data(response):
-        return response
-
     def extract_one(self, response: dict):
         data = response.get('json').get('result')
+        if data == 'Invalid API Key':
+            raise KeyError('Invalid API Key')
         return [{
             'sender'           : self.get_sender(transaction),
             'receiver'         : self.get_receiver(transaction),

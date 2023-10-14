@@ -1,9 +1,11 @@
+from datetime import datetime
 import re
 from typing import Any
 from string import Template
 
 import time
 from random import randint
+
 
 import asyncio
 import aiohttp
@@ -22,7 +24,7 @@ class Sleeper:
     def sleep(self, *args: Any, **kwds: Any) -> Any:
         delay = 5 if self.num % 10 == 1 else randint(0, self.max_sleep * 10) / 10 \
               if randint(0, 1) == 1 else 0
-        print(f'Sleep {delay} secs')
+        print(f'\033[34m{datetime.now()}: Sleep {delay} secs\033[0m')
         time.sleep(delay) 
         self.num += 1
 
@@ -53,11 +55,11 @@ class AsyncParser:
         self.__bodies = bodies
 
     async def _make_one_page_task(self, url, body, session):
-        print(f'Create task: {url} {body}')
+        print(f'\033[37m{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}: \033[33mCreate task: {self.__class__.__name__}\033[0m')
         if self.sleeper:
             self.sleeper.sleep()
         data = await self.requester.make_request(url, body, session)
-        print(f'Parsed: {url} {body}')
+        print(f'\033[37m{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}: \033[32mParsed: {self.__class__.__name__}\033[0m')
         return data
     
     @staticmethod
@@ -105,7 +107,7 @@ class WaletBalanceParser(AsyncParser):
 
 class WaletTransactionsParser(AsyncParser):
     def __init__(self, wallet_address, api_key, requester, extracter, 
-                 sleeper=None, offset=10, start_block=None, end_block=None) -> None:
+                 sleeper=None, offset=1000, start_block=None, end_block=None) -> None:
         super().__init__(requester, extracter, sleeper)
         self.address = wallet_address.lower()
         self.api_key = api_key
@@ -122,7 +124,6 @@ class WaletTransactionsParser(AsyncParser):
 
     @start_block.setter
     def start_block(self, start_block):
-        print(self.url_template.substitute(startblock=start_block))
         self.urls[0] = self.url_template.substitute(startblock=start_block)
         self.__start_block = start_block
         
